@@ -41,3 +41,27 @@ def registered_user():
     response = requests.post(f"{Url.BASE_URL}/api/auth/register", json=payload)
     response.raise_for_status()
     return payload
+
+@pytest.fixture
+def registered_user_api():
+    """Создание пользователя через API с последующим удалением"""
+    email = generate_email()
+    password = generate_password()
+    name = generate_name()
+    
+    payload = {
+        "email": email,
+        "password": password,
+        "name": name
+    }
+    
+    response = requests.post(f"{Url.BASE_URL}/api/auth/register", json=payload)
+    assert response.status_code == 200
+    
+    yield email, password
+    
+    # Удаление пользователя после теста
+    access_token = response.json().get("accessToken")
+    if access_token:
+        headers = {"Authorization": f"Bearer {access_token}"}
+        requests.delete(f"{Url.BASE_URL}/api/auth/user", headers=headers)

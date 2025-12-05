@@ -37,3 +37,61 @@ class OrderPage(BasePage):
             for order in order_elements:
                 orders.append(order.text)
         return orders
+
+    @allure.step('Дождаться загрузки счетчиков')
+    def wait_counters_loaded(self, counter_type='all_time'):
+        """Ждем загрузки счетчиков"""
+        import time
+        time.sleep(2)  # Простое ожидание, можно улучшить
+    
+    @allure.step('Получить значение счетчика')
+    def get_counter(self, counter_type):
+        """Получить значение счетчика по типу: 'all_time' или 'today'"""
+        if counter_type == 'all_time':
+            return self.get_all_time_counter()
+        elif counter_type == 'today':
+            return self.get_today_counter()
+        else:
+            raise ValueError(f"Неизвестный тип счетчика: {counter_type}")
+
+    @allure.step('Ожидание загрузки счетчика')
+    def wait_counters_loaded(self, counter_type):
+        # Простое ожидание, можно улучшить
+        import time
+        time.sleep(2)
+    
+    @allure.step('Прочитать количество выполненных заказов')
+    def get_counter(self, counter_type):
+        if counter_type == 'all_time':
+            return self.get_all_time_counter()
+        elif counter_type == 'today':
+            return self.get_today_counter()
+        else:
+            raise ValueError(f"Неизвестный тип счетчика: {counter_type}")
+
+    @allure.step('Получить значение счетчика')
+    def get_counter(self, counter_type):
+        """
+        Получить значение счетчика по типу.
+        counter_type: 'all_time' или 'today'
+        """
+        if counter_type == 'all_time':
+            return self.get_all_time_counter()
+        elif counter_type == 'today':
+            return self.get_today_counter()
+        else:
+            raise ValueError(f"Неизвестный тип счетчика: {counter_type}")
+    
+    @allure.step('Дождаться загрузки счетчиков')
+    def wait_counters_loaded(self, counter_type=None):
+        """Дождаться видимости счетчиков"""
+        from selenium.webdriver.support import expected_conditions as EC
+        from selenium.webdriver.support.wait import WebDriverWait
+        if counter_type == 'all_time' or counter_type is None:
+            WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located(OrderPageLocators.ALL_TIME_COUNTER)
+            )
+        if counter_type == 'today' or counter_type is None:
+            WebDriverWait(self.driver, 10).until(
+                EC.visibility_of_element_located(OrderPageLocators.TODAY_COUNTER)
+            )

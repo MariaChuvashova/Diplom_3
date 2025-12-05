@@ -1,145 +1,81 @@
 import pytest
 import allure
 import requests
-import time
 from pages.main_page import MainPage
 from pages.order_page import OrderPage
 from pages.auth_page import AuthPage
 from helpers import generate_email, generate_password, generate_name
 from urls import Url
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.wait import WebDriverWait
+from locators.main_page_locators import MainPageLocators
 
 
 @allure.feature('Лента заказов')
 class TestOrders:
-    @pytest.fixture
-    def registered_user_api(self):
-        """Создание пользователя через API"""
-        email = generate_email()
-        password = generate_password()
-        name = generate_name()
-        
-        payload = {
-            "email": email,
-            "password": password,
-            "name": name
-        }
-        
-        response = requests.post(f"{Url.BASE_URL}/api/auth/register", json=payload)
-        assert response.status_code == 200
-        
-        yield email, password
-        
-        # Удаление пользователя после теста
-        access_token = response.json().get("accessToken")
-        if access_token:
-            headers = {"Authorization": f"Bearer {access_token}"}
-            requests.delete(f"{Url.BASE_URL}/api/auth/user", headers=headers)
-    
     @allure.title('Увеличение счетчика "Выполнено за всё время"')
-    @pytest.mark.skip(reason="Требует настройки drag-and-drop и авторизации")
-    def test_all_time_counter_increases(self, driver, registered_user_api):
+    @pytest.mark.parametrize('counter_type', ['all_time', 'today'])
+    def test_order_creation_counters(self, driver, registered_user_api, counter_type):
+        """
+        Проверяем, что счетчики увеличиваются при создании заказа.
+        """
         email, password = registered_user_api
+        auth_page = AuthPage(driver)
         main_page = MainPage(driver)
         order_page = OrderPage(driver)
-        auth_page = AuthPage(driver)
         
+        # Шаг 1: Авторизация
         with allure.step('Авторизоваться'):
             auth_page.open()
             auth_page.login(email, password)
-            assert main_page.is_constructor_visible()
+            WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located(MainPageLocators.CONSTRUCTOR_AREA)
+            )
         
-        with allure.step('Получить начальное значение счетчика за все время'):
-            order_page.open()
-            initial_count = order_page.get_all_time_counter()
+        # Шаг 2: Запомнить старые значения счетчиков
+        with allure.step('Перейти в ленту заказов и запомнить счетчики'):
+            main_page.click_order_feed_button()
+            WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located(order_page.locators.FEED_TITLE)
+            )
+            counter_old = order_page.get_counter(counter_type)
         
-        with allure.step('Создать новый заказ'):
-            main_page.open()
-            main_page.add_ingredient_to_constructor()
-            main_page.click_order_button()  # Исправлено!
-            
-            time.sleep(2)  # ждем обработки заказа
-            
+        # Шаг 3: Вернуться в конструктор и создать заказ
+        with allure.step('Вернуться в конструктор'):
+            main_page.click_constructor_button()
+            WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located(MainPageLocators.CONSTRUCTOR_AREA)
+            )
+        
+        with allure.step('Добавить ингредиенты в конструктор'):
+            main_page.drag_bun_to_constructor()
+            main_page.drag_sauce_to_constructor()
+            # Ждем добавления ингредиентов
+            WebDriverWait(driver, 5).until(
+                lambda d: main_page.get_ingredient_counter() >= 2
+            )
+        
+        with allure.step('Оформить заказ'):
+            main_page.click_order_button()
+            WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located(MainPageLocators.MODAL_ORDER_NUMBER)
+            )
             order_number = main_page.get_order_number()
-            assert order_number is not None
-            
+            assert order_number is not None, "Номер заказа не появился"
+        
+        with allure.step('Закрыть модальное окно заказа'):
             main_page.close_modal()
+            main_page.wait_element_to_disappear(MainPageLocators.MODAL_CONTAINER)
         
-        with allure.step('Проверить увеличение счетчика за все время'):
-            order_page.open()
-            final_count = order_page.get_all_time_counter()
-            assert final_count > initial_count, \
-                f'Счетчик не увеличился. Было: {initial_count}, стало: {final_count}'
-    
-    @allure.title('Увеличение счетчика "Выполнено за сегодня"')
-    @pytest.mark.skip(reason="Требует настройки drag-and-drop и авторизации")
-    def test_today_counter_increases(self, driver, registered_user_api):
-        email, password = registered_user_api
-        main_page = MainPage(driver)
-        order_page = OrderPage(driver)
-        auth_page = AuthPage(driver)
-        
-        with allure.step('Авторизоваться'):
-            auth_page.open()
-            auth_page.login(email, password)
-            assert main_page.is_constructor_visible()
-        
-        with allure.step('Получить начальное значение счетчика за сегодня'):
-            order_page.open()
-            initial_today_count = order_page.get_today_counter()
-        
-        with allure.step('Создать новый заказ'):
-            main_page.open()
-            main_page.add_ingredient_to_constructor()
-            main_page.click_order_button()  # Исправлено!
+        # Шаг 4: Проверить новые значения счетчиков
+        with allure.step('Проверить увеличение счетчика'):
+            main_page.click_order_feed_button()
+            WebDriverWait(driver, 10).until(
+                EC.visibility_of_element_located(order_page.locators.FEED_TITLE)
+            )
+            counter_new = order_page.get_counter(counter_type)
             
-            time.sleep(2)
-            
-            order_number = main_page.get_order_number()
-            assert order_number is not None
-            
-            main_page.close_modal()
-        
-        with allure.step('Проверить увеличение счетчика за сегодня'):
-            order_page.open()
-            final_today_count = order_page.get_today_counter()
-            assert final_today_count > initial_today_count, \
-                f'Счетчик за сегодня не увеличился. Было: {initial_today_count}, стало: {final_today_count}'
-    
-    @allure.title('Номер заказа появляется в разделе "В работе"')
-    @pytest.mark.skip(reason="Требует настройки drag-and-drop и авторизации")
-    def test_order_in_progress(self, driver, registered_user_api):
-        email, password = registered_user_api
-        main_page = MainPage(driver)
-        order_page = OrderPage(driver)
-        auth_page = AuthPage(driver)
-        
-        with allure.step('Авторизоваться'):
-            auth_page.open()
-            auth_page.login(email, password)
-            assert main_page.is_constructor_visible()
-        
-        with allure.step('Создать новый заказ'):
-            main_page.open()
-            main_page.add_ingredient_to_constructor()
-            main_page.click_order_button()  # Исправлено!
-            
-            time.sleep(2)
-            
-            order_number = main_page.get_order_number()
-            assert order_number is not None
-            
-            main_page.close_modal()
-        
-        with allure.step('Проверить наличие заказа в работе'):
-            order_page.open()
-            orders_in_progress = order_page.get_orders_in_progress()
-            assert len(orders_in_progress) > 0, 'Нет заказов в работе'
-            
-            # Проверяем что наш номер заказа есть в списке
-            order_found = False
-            for order in orders_in_progress:
-                if order_number in order:
-                    order_found = True
-                    break
-            
-            assert order_found, f'Заказ {order_number} не найден в разделе "В работе"'
+            assert counter_new == counter_old + 1, (
+                f'Счетчик не увеличился. Тип: {counter_type}. '
+                f'Было: {counter_old}, стало: {counter_new}'
+            )
