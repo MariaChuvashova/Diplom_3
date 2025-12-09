@@ -1,6 +1,8 @@
 import pytest
 from selenium import webdriver
 import requests
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 from helpers import generate_email, generate_password, generate_name
 from urls import Url
 
@@ -11,6 +13,12 @@ def driver():
     driver = webdriver.Firefox()
     driver.maximize_window()
     yield driver
+    # После теста пытаемся закрыть все модальные окна
+    try:
+        actions = ActionChains(driver)
+        actions.send_keys(Keys.ESCAPE).perform()
+    except:
+        pass
     driver.quit()
 
 
@@ -44,7 +52,7 @@ def registered_user():
 
 @pytest.fixture
 def registered_user_api():
-    """Создание пользователя через API с последующим удалением"""
+    """Создание пользователя через API с последующим удаление"""
     email = generate_email()
     password = generate_password()
     name = generate_name()

@@ -67,8 +67,10 @@ class BasePage:
         drag_and_drop(self.driver, source_element, target_element)
     
     @allure.step('Ждать кликабельности элемента')
-    def wait_for_element_clickable(self, locator):
-        WebDriverWait(self.driver, self.timeout).until(
+    def wait_for_element_clickable(self, locator, timeout=None):
+        if timeout is None:
+            timeout = self.timeout
+        return WebDriverWait(self.driver, timeout).until(
             EC.element_to_be_clickable(locator)
         )
     
@@ -77,3 +79,44 @@ class BasePage:
         element = self.find_element(locator)
         element.clear()
         element.send_keys(text)
+
+    @allure.step('Дождаться видимости элемента')
+    def wait_for_element_visible(self, locator, timeout=None):
+        if timeout is None:
+            timeout = self.timeout
+        return WebDriverWait(self.driver, timeout).until(
+            EC.visibility_of_element_located(locator),
+            message=f"Элемент {locator} не стал видимым за {timeout} сек"
+        )
+
+    @allure.step('Дождаться скрытия элемента')
+    def wait_for_element_invisible(self, locator, timeout=None):
+        if timeout is None:
+            timeout = self.timeout
+        return WebDriverWait(self.driver, timeout).until(
+            EC.invisibility_of_element_located(locator),
+            message=f"Элемент {locator} не скрылся за {timeout} сек"
+        )
+
+    @allure.step('Отправить клавишу ESC')
+    def send_escape_key(self):
+        from selenium.webdriver.common.action_chains import ActionChains
+        from selenium.webdriver.common.keys import Keys
+        actions = ActionChains(self.driver)
+        actions.send_keys(Keys.ESCAPE).perform()
+
+    @allure.step('Кликнуть по оверлею модального окна')
+    def click_overlay(self):
+        try:
+            overlay = self.find_element((By.XPATH, "//div[contains(@class, 'Modal_modal_overlay')]"))
+            overlay.click()
+        except:
+            pass  # если оверлея нет — ничего не делаем
+
+    @allure.step('Дождаться скрытия оверлея')
+    def wait_overlay_hidden(self, overlay_type='loading'):
+        if overlay_type == 'loading':
+            locator = MainPageLocators.LOADING_OVERLAY
+        else:
+            locator = MainPageLocators.MODAL_OVERLAY
+        self.wait_for_element_invisible(locator)

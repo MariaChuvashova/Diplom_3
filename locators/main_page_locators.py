@@ -2,27 +2,33 @@ from selenium.webdriver.common.by import By
 
 
 class MainPageLocators:
-    # Навигация
+    # =================== НАВИГАЦИЯ ===================
     BUTTON_CONSTRUCTOR = (By.XPATH, "//a[p[text()='Конструктор']]")
     BUTTON_ORDER_FEED = (By.XPATH, "//a[p[text()='Лента Заказов']]")
     BUTTON_PERSONAL_ACCOUNT = (By.XPATH, "//a[p[text()='Личный Кабинет']]")
     
-    # Ингредиенты
+    # =================== ИНГРЕДИЕНТЫ ===================
     INGREDIENT_FLUORESCENT_BUN = (By.XPATH, "//p[text()='Флюоресцентная булка R2-D3']")
     INGREDIENT_SPICY_SAUCE = (By.XPATH, "//p[text()='Соус Spicy-X']")
     
-    # Модальные окна
-    MODAL_TITLE = (By.XPATH, "//h2[text()='Детали ингредиента']")
-    MODAL_INGREDIENT_NAME = (By.XPATH, "//p[text()='Флюоресцентная булка R2-D3']")
-    MODAL_CLOSE_BUTTON = (By.CLASS_NAME, "Modal_modal__close_modified__3V5XS")
-    MODAL_CONTAINER = (By.CLASS_NAME, "Modal_modal_container__Wo2l_")
+    # =================== МОДАЛЬНЫЕ ОКНА ===================
+    MODAL_TITLE = (By.XPATH, "//h2[contains(text(), 'Детали ингредиента')]")
+    MODAL_INGREDIENT_NAME = (By.XPATH, "//p[contains(@class, 'text_type_main-medium') and contains(text(), 'Флюоресцентная булка')]")
+    MODAL_CLOSE_BUTTON = (By.XPATH, "//button[contains(@class, 'Modal_modal__close_modified')]")
+    MODAL_CONTAINER = (By.XPATH, "//section[contains(@class, 'Modal_modal_opened')]")
     
-    # Конструктор
-    CONSTRUCTOR_AREA = (By.CLASS_NAME, "BurgerConstructor_basket__29Cd7")
+    # =================== ОВЕРЛЕИ ===================
+    LOADING_OVERLAY = (By.XPATH, '//img[contains(@class, "loading")]/parent::div')
+    MODAL_OVERLAY = (By.XPATH, "//div[contains(@class, 'Modal_modal_overlay')]")
+    
+    # =================== КОНСТРУКТОР ===================
+    CONSTRUCTOR_AREA = (By.XPATH, "//section[contains(@class, 'BurgerConstructor_basket')]")
     ORDER_BUTTON = (By.XPATH, "//button[text()='Оформить заказ']")
     
-    # Счетчик ингредиента (цифра сверху на ингредиенте)
-    INGREDIENT_COUNTER = (By.CLASS_NAME, "counter_counter__ZNLkj")
+    # =================== СЧЕТЧИКИ ===================
+    INGREDIENT_COUNTER = (By.XPATH, "//div[contains(@class, 'counter_counter')]")
     
-    # Номер заказа (после оформления)
-    MODAL_ORDER_NUMBER = (By.XPATH, "//h2[contains(@class, 'Modal_modal_title_shadow__')]")
+    # =================== ЗАКАЗ ===================
+    MODAL_ORDER_NUMBER = (By.XPATH, "//h2[contains(@class, 'Modal_modal__title_shadow')]")
+    # Кнопка закрытия модального окна заказа (специальная)
+    ORDER_CLOSE_BUTTON = (By.XPATH, '//h2[contains(@class,"text_type_digits-large")]/parent::div/parent::div/button[contains(@class, "close")]')
